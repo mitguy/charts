@@ -1,0 +1,65 @@
+package main
+
+import (
+	"image/color"
+	"log"
+	"time"
+
+	"gonum.org/v1/gonum/plot"
+	"gonum.org/v1/gonum/plot/plotter"
+	"gonum.org/v1/gonum/plot/vg"
+)
+
+type JiraIssue struct {
+	ID     string
+	Opened time.Time
+	Closed time.Time
+}
+
+func main() {
+	// 1. Setup sample Jira issue data
+	now := time.Now()
+	issues := []JiraIssue{
+		{"JIRA-1", now.Add(-5 * time.Hour), now},
+		{"JIRA-2", now.Add(-12 * time.Hour), now},
+		{"JIRA-3", now.Add(-26 * time.Hour), now},
+		{"JIRA-4", now.Add(-30 * time.Hour), now},
+		{"JIRA-5", now.Add(-55 * time.Hour), now},
+		{"JIRA-6", now.Add(-3 * time.Hour), now},
+		{"JIRA-7", now.Add(-72 * time.Hour), now},
+		{"JIRA-8", now.Add(-8h), now},
+		{"JIRA-9", now.Add(-19h), now},
+		{"JIRA-10", now.Add(-41h), now},
+	}
+
+	// 2. Map durations to float64 values (Hours)
+	values := make(plotter.Values, len(issues))
+	for i, issue := range issues {
+		duration := issue.Closed.Sub(issue.Opened)
+		values[i] = duration.Hours()
+	}
+
+	// 3. Initialize a clean new chart canvas
+	p := plot.New()
+	p.Title.Text = "Jira Tasks Lead Time Distribution"
+	p.X.Label.Text = "Time Spent (Hours)"
+	p.Y.Label.Text = "Amount of Tasks"
+
+	// 4. Set the bin parameter to 0 for automatic Sturges bin calculation
+	autoBins := 0
+	hist, err := plotter.NewHistogram(values, autoBins)
+	if err != nil {
+		log.Fatalf("Failed to calculate automatic histogram bins: %v", err)
+	}
+
+	// Stylize chart visual properties
+	hist.Color = color.RGBA{R: 50, G: 120, B: 220, A: 255} 
+	p.Add(hist)
+
+	// 5. Save chart straight to disk as a PNG graphic element
+	outputWidth := 6 * vg.Inch
+	outputHeight := 4 * vg.Inch
+	if err := p.Save(outputWidth, outputHeight, "jira_auto_histogram.png"); err != nil {
+		log.Fatalf("Could not export graph to system file: %v", err)
+	}
+}
